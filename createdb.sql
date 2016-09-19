@@ -278,7 +278,7 @@ GO
 CREATE VIEW [dbo].[SchoolSubjScores]
 AS
 SELECT  EOName, EORegName
-, COUNT(OutId) As Examinees
+, COUNT(DISTINCT OutId) As Examinees
 , AVG(Ukr) AS UkrAvg
 , COUNT(Ukr) AS UkrN
 , AVG(Hist) AS HistAvg
@@ -408,7 +408,7 @@ GO
 
 CREATE VIEW [dbo].[SexTypeScores] AS
 SELECT  SexTypeName    
-			,COUNT(OutID) AS N
+			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
 		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
@@ -429,7 +429,7 @@ GO
 
 CREATE VIEW [dbo].[AgeScores] AS
 SELECT  Age   
-			,COUNT(OutID) AS N
+			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
 		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
@@ -449,7 +449,7 @@ GO
 
 CREATE VIEW [dbo].[TerTypeScores] AS
 SELECT  TerType    
-			,COUNT(OutID) AS N
+			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
 		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
@@ -502,7 +502,7 @@ GO
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolsWithBestPeople] as 
 SELECT TOP 10
-       Count ([OutID]) AS N    
+       Count (DISTINCT [OutID]) AS N    
       ,[EOName]
       ,[EORegName]      
   FROM [dbo].[StudentRaitingTop1000]
@@ -522,7 +522,7 @@ GO
 
 CREATE VIEW [dbo].[SubjectSexTypeScores] AS
 SELECT Subj, SexTypeName    
-			,COUNT(OutID) AS N
+			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
 		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
