@@ -1,7 +1,15 @@
 ﻿USE [master]
 GO
-/****** Object:  Database [zno2016]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  Database [zno2016]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE DATABASE [zno2016]
+GO
+ALTER DATABASE [zno2016]
+MODIFY FILE
+( NAME = N'zno2016', SIZE = 2200MB, FILEGROWTH =  10% )
+GO
+ALTER DATABASE [zno2016]
+MODIFY FILE
+( NAME = N'zno2016_log', SIZE = 1200MB, FILEGROWTH =  10% )
 GO
 ALTER DATABASE [zno2016] SET COMPATIBILITY_LEVEL = 110
 GO
@@ -70,12 +78,191 @@ EXEC sys.sp_db_vardecimal_storage_format N'zno2016', N'ON'
 GO
 USE [zno2016]
 GO
-/****** Object:  Table [dbo].[OpenData2016]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  UserDefinedFunction [dbo].[clean_num]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE TABLE [dbo].[OpenData2016_CSV](
+
+CREATE FUNCTION [dbo].[clean_num] 
+(
+	@num NVARCHAR(500) NULL
+)
+RETURNS NVARCHAR(500)
+AS
+BEGIN
+	RETURN CASE WHEN @num <> 'null' THEN REPLACE(@num, ',', '.') END
+END
+
+
+GO
+/****** Object:  UserDefinedFunction [dbo].[clean_str]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE FUNCTION [dbo].[clean_str] 
+(
+	@str NVARCHAR(500) NULL
+)
+RETURNS NVARCHAR(500)
+AS
+BEGIN
+	RETURN CASE WHEN @str <> 'null' THEN REPLACE(@str, '"', '') END
+
+END
+
+
+GO
+/****** Object:  UserDefinedFunction [dbo].[get_score]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE FUNCTION [dbo].[get_score] 
+(	
+	@testStatus nvarchar(500),
+	@ball100 decimal(4,1),
+	@ball12 int NULL = NULL
+)
+RETURNS decimal(4,1)
+AS
+BEGIN	
+	RETURN 
+	CASE WHEN @testStatus = N'Не склав' OR @testStatus = N'Отримав результат' THEN  
+		CASE 
+		WHEN @ball100 >= 100 THEN @ball100
+		WHEN @ball12 IS NULL THEN 50
+		ELSE @ball12 * 20	
+		END
+	END
+END
+
+
+GO
+/****** Object:  Table [dbo].[OpenData2016]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OpenData2016](
+	[OutID] [uniqueidentifier] NULL,
+	[Birth] [int] NULL,
+	[SexTypeName] [nvarchar](500) NULL,
+	[Regname] [nvarchar](500) NULL,
+	[AreaName] [nvarchar](500) NULL,
+	[TerName] [nvarchar](500) NULL,
+	[RegTypeName] [nvarchar](500) NULL,
+	[EOName] [nvarchar](500) NULL,
+	[EOTypeName] [nvarchar](500) NULL,
+	[EORegName] [nvarchar](500) NULL,
+	[EOAreaName] [nvarchar](500) NULL,
+	[EOTerName] [nvarchar](500) NULL,
+	[EOParent] [nvarchar](500) NULL,
+	[UkrTest] [nvarchar](500) NULL,
+	[UkrTestStatus] [nvarchar](500) NULL,
+	[UkrBall100] [decimal](4, 1) NULL,
+	[UkrBall12] [int] NULL,
+	[UkrPTName] [nvarchar](500) NULL,
+	[UkrPTRegName] [nvarchar](500) NULL,
+	[UkrPTAreaName] [nvarchar](500) NULL,
+	[UkrPTTerName] [nvarchar](500) NULL,
+	[HistTest] [nvarchar](500) NULL,
+	[HistLang] [nvarchar](500) NULL,
+	[HistTestStatus] [nvarchar](500) NULL,
+	[HistBall100] [decimal](4, 1) NULL,
+	[HistBall12] [int] NULL,
+	[HistPTName] [nvarchar](500) NULL,
+	[HistPTRegName] [nvarchar](500) NULL,
+	[HistPTAreaName] [nvarchar](500) NULL,
+	[HistPTTerName] [nvarchar](500) NULL,
+	[MathTest] [nvarchar](500) NULL,
+	[MathLang] [nvarchar](500) NULL,
+	[MathTestStatus] [nvarchar](500) NULL,
+	[MathBall100] [decimal](4, 1) NULL,
+	[MathBall12] [int] NULL,
+	[MathPTName] [nvarchar](500) NULL,
+	[MathPTRegName] [nvarchar](500) NULL,
+	[MathPTAreaName] [nvarchar](500) NULL,
+	[MathPTTerName] [nvarchar](500) NULL,
+	[PhysTest] [nvarchar](500) NULL,
+	[PhysLang] [nvarchar](500) NULL,
+	[PhysTestStatus] [nvarchar](500) NULL,
+	[PhysBall100] [decimal](4, 1) NULL,
+	[PhysPTName] [nvarchar](500) NULL,
+	[PhysPTRegName] [nvarchar](500) NULL,
+	[PhysPTAreaName] [nvarchar](500) NULL,
+	[PhysPTTerName] [nvarchar](500) NULL,
+	[ChemTest] [nvarchar](500) NULL,
+	[ChemLang] [nvarchar](500) NULL,
+	[ChemTestStatus] [nvarchar](500) NULL,
+	[ChemBall100] [decimal](4, 1) NULL,
+	[ChemPTName] [nvarchar](500) NULL,
+	[ChemPTRegName] [nvarchar](500) NULL,
+	[ChemPTAreaName] [nvarchar](500) NULL,
+	[ChemPTTerName] [nvarchar](500) NULL,
+	[BioTest] [nvarchar](500) NULL,
+	[BioLang] [nvarchar](500) NULL,
+	[BioTestStatus] [nvarchar](500) NULL,
+	[BioBall100] [decimal](4, 1) NULL,
+	[BioPTName] [nvarchar](500) NULL,
+	[BioPTRegName] [nvarchar](500) NULL,
+	[BioPTAreaName] [nvarchar](500) NULL,
+	[BioPTTerName] [nvarchar](500) NULL,
+	[GeoTest] [nvarchar](500) NULL,
+	[GeoLang] [nvarchar](500) NULL,
+	[GeoTestStatus] [nvarchar](500) NULL,
+	[GeoBall100] [decimal](4, 1) NULL,
+	[GeoPTName] [nvarchar](500) NULL,
+	[GeoPTRegName] [nvarchar](500) NULL,
+	[GeoPTAreaName] [nvarchar](500) NULL,
+	[GeoPTTerName] [nvarchar](500) NULL,
+	[EngTest] [nvarchar](500) NULL,
+	[EngTestStatus] [nvarchar](500) NULL,
+	[EngBall100] [decimal](4, 1) NULL,
+	[EngPTName] [nvarchar](500) NULL,
+	[EngPTRegName] [nvarchar](500) NULL,
+	[EngPTAreaName] [nvarchar](500) NULL,
+	[EngPTTerName] [nvarchar](500) NULL,
+	[FrTest] [nvarchar](500) NULL,
+	[FrTestStatus] [nvarchar](500) NULL,
+	[FrBall100] [decimal](4, 1) NULL,
+	[FrPTName] [nvarchar](500) NULL,
+	[FrPTRegName] [nvarchar](500) NULL,
+	[FrPTAreaName] [nvarchar](500) NULL,
+	[FrPTTerName] [nvarchar](500) NULL,
+	[DeuTest] [nvarchar](500) NULL,
+	[DeuTestStatus] [nvarchar](500) NULL,
+	[DeuBall100] [decimal](4, 1) NULL,
+	[DeuPTName] [nvarchar](500) NULL,
+	[DeuPTRegName] [nvarchar](500) NULL,
+	[DeuPTAreaName] [nvarchar](500) NULL,
+	[DeuPTTerName] [nvarchar](500) NULL,
+	[SpTest] [nvarchar](500) NULL,
+	[SpTestStatus] [nvarchar](500) NULL,
+	[SpBall100] [decimal](4, 1) NULL,
+	[SpPTName] [nvarchar](500) NULL,
+	[SpPTRegName] [nvarchar](500) NULL,
+	[SpPTAreaName] [nvarchar](500) NULL,
+	[SpPTTerName] [nvarchar](500) NULL,
+	[RusTest] [nvarchar](500) NULL,
+	[RusTestStatus] [nvarchar](500) NULL,
+	[RusBall100] [decimal](4, 1) NULL,
+	[RusPTName] [nvarchar](500) NULL,
+	[RusPTRegName] [nvarchar](500) NULL,
+	[RusPTAreaName] [nvarchar](500) NULL,
+	[RusPTTerName] [nvarchar](500) NULL
+) ON [PRIMARY]
+
+GO
+/****** Object:  Table [dbo].[OpenData2016_tmp]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OpenData2016_tmp](
 	[OutID] [nvarchar](100) NULL,
 	[Birth] [nvarchar](500) NULL,
 	[SexTypeName] [nvarchar](500) NULL,
@@ -185,119 +372,7 @@ CREATE TABLE [dbo].[OpenData2016_CSV](
 ) ON [PRIMARY]
 
 GO
-
-CREATE TABLE [dbo].[OpenData2016](
-	[OutID] uniqueidentifier,
-	[Birth] int,
-	[SexTypeName] [nvarchar](500) NULL,
-	[Regname] [nvarchar](500) NULL,
-	[AreaName] [nvarchar](500) NULL,
-	[TerName] [nvarchar](500) NULL,
-	[RegTypeName] [nvarchar](500) NULL,
-	[EOName] [nvarchar](500) NULL,
-	[EOTypeName] [nvarchar](500) NULL,
-	[EORegName] [nvarchar](500) NULL,
-	[EOAreaName] [nvarchar](500) NULL,
-	[EOTerName] [nvarchar](500) NULL,
-	[EOParent] [nvarchar](500) NULL,
-	[UkrTest] [nvarchar](500) NULL,
-	[UkrTestStatus] [nvarchar](500) NULL,
-	[UkrBall100] decimal(4, 1) NULL,
-	[UkrBall12] decimal(4, 1) NULL,
-	[UkrPTName] [nvarchar](500) NULL,
-	[UkrPTRegName] [nvarchar](500) NULL,
-	[UkrPTAreaName] [nvarchar](500) NULL,
-	[UkrPTTerName] [nvarchar](500) NULL,
-	[HistTest] [nvarchar](500) NULL,
-	[HistLang] [nvarchar](500) NULL,
-	[HistTestStatus] [nvarchar](500) NULL,
-	[HistBall100] decimal(4, 1) NULL,
-	[HistBall12] decimal(4, 1) NULL,
-	[HistPTName] [nvarchar](500) NULL,
-	[HistPTRegName] [nvarchar](500) NULL,
-	[HistPTAreaName] [nvarchar](500) NULL,
-	[HistPTTerName] [nvarchar](500) NULL,
-	[MathTest] [nvarchar](500) NULL,
-	[MathLang] [nvarchar](500) NULL,
-	[MathTestStatus] [nvarchar](500) NULL,
-	[MathBall100] decimal(4, 1) NULL,
-	[MathBall12] decimal(4, 1) NULL,
-	[MathPTName] [nvarchar](500) NULL,
-	[MathPTRegName] [nvarchar](500) NULL,
-	[MathPTAreaName] [nvarchar](500) NULL,
-	[MathPTTerName] [nvarchar](500) NULL,
-	[PhysTest] [nvarchar](500) NULL,
-	[PhysLang] [nvarchar](500) NULL,
-	[PhysTestStatus] [nvarchar](500) NULL,
-	[PhysBall100] decimal(4, 1) NULL,
-	[PhysPTName] [nvarchar](500) NULL,
-	[PhysPTRegName] [nvarchar](500) NULL,
-	[PhysPTAreaName] [nvarchar](500) NULL,
-	[PhysPTTerName] [nvarchar](500) NULL,
-	[ChemTest] [nvarchar](500) NULL,
-	[ChemLang] [nvarchar](500) NULL,
-	[ChemTestStatus] [nvarchar](500) NULL,
-	[ChemBall100] decimal(4, 1) NULL,
-	[ChemPTName] [nvarchar](500) NULL,
-	[ChemPTRegName] [nvarchar](500) NULL,
-	[ChemPTAreaName] [nvarchar](500) NULL,
-	[ChemPTTerName] [nvarchar](500) NULL,
-	[BioTest] [nvarchar](500) NULL,
-	[BioLang] [nvarchar](500) NULL,
-	[BioTestStatus] [nvarchar](500) NULL,
-	[BioBall100] decimal(4, 1) NULL,
-	[BioPTName] [nvarchar](500) NULL,
-	[BioPTRegName] [nvarchar](500) NULL,
-	[BioPTAreaName] [nvarchar](500) NULL,
-	[BioPTTerName] [nvarchar](500) NULL,
-	[GeoTest] [nvarchar](500) NULL,
-	[GeoLang] [nvarchar](500) NULL,
-	[GeoTestStatus] [nvarchar](500) NULL,
-	[GeoBall100] decimal(4, 1) NULL,
-	[GeoPTName] [nvarchar](500) NULL,
-	[GeoPTRegName] [nvarchar](500) NULL,
-	[GeoPTAreaName] [nvarchar](500) NULL,
-	[GeoPTTerName] [nvarchar](500) NULL,
-	[EngTest] [nvarchar](500) NULL,
-	[EngTestStatus] [nvarchar](500) NULL,
-	[EngBall100] decimal(4, 1) NULL,
-	[EngPTName] [nvarchar](500) NULL,
-	[EngPTRegName] [nvarchar](500) NULL,
-	[EngPTAreaName] [nvarchar](500) NULL,
-	[EngPTTerName] [nvarchar](500) NULL,
-	[FrTest] [nvarchar](500) NULL,
-	[FrTestStatus] [nvarchar](500) NULL,
-	[FrBall100] decimal(4, 1) NULL,
-	[FrPTName] [nvarchar](500) NULL,
-	[FrPTRegName] [nvarchar](500) NULL,
-	[FrPTAreaName] [nvarchar](500) NULL,
-	[FrPTTerName] [nvarchar](500) NULL,
-	[DeuTest] [nvarchar](500) NULL,
-	[DeuTestStatus] [nvarchar](500) NULL,
-	[DeuBall100] decimal(4, 1) NULL,
-	[DeuPTName] [nvarchar](500) NULL,
-	[DeuPTRegName] [nvarchar](500) NULL,
-	[DeuPTAreaName] [nvarchar](500) NULL,
-	[DeuPTTerName] [nvarchar](500) NULL,
-	[SpTest] [nvarchar](500) NULL,
-	[SpTestStatus] [nvarchar](500) NULL,
-	[SpBall100] decimal(4, 1) NULL,
-	[SpPTName] [nvarchar](500) NULL,
-	[SpPTRegName] [nvarchar](500) NULL,
-	[SpPTAreaName] [nvarchar](500) NULL,
-	[SpPTTerName] [nvarchar](500) NULL,
-	[RusTest] [nvarchar](500) NULL,
-	[RusTestStatus] [nvarchar](500) NULL,
-	[RusBall100] decimal(4, 1) NULL,
-	[RusPTName] [nvarchar](500) NULL,
-	[RusPTRegName] [nvarchar](500) NULL,
-	[RusPTAreaName] [nvarchar](500) NULL,
-	[RusPTTerName] [nvarchar](500) NULL
-) ON [PRIMARY]
-
-GO
-
-/****** Object:  Table [dbo].[PersonScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  Table [dbo].[PersonScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -306,26 +381,25 @@ CREATE TABLE [dbo].[PersonScores](
 	[OutID] [nvarchar](200) NOT NULL,
 	[SexTypeName] [nvarchar](500) NULL,
 	[Age] [int] NULL,
-	[IsFromSchool] [int] NOT NULL,
 	[TerType] [nvarchar](10) NULL,
 	[EOName] [nvarchar](500) NULL,
 	[EORegName] [nvarchar](500) NULL,
-	[Ukr] decimal(4, 1) NULL,
-	[Hist] decimal(4, 1) NULL,
-	[Math] decimal(4, 1) NULL,
-	[Phys] decimal(4, 1) NULL,
-	[Chem] decimal(4, 1) NULL,
-	[Bio] decimal(4, 1) NULL,
-	[Geo] decimal(4, 1) NULL,
-	[Eng] decimal(4, 1) NULL,
-	[Fr] decimal(4, 1) NULL,
-	[Deu] decimal(4, 1) NULL,
-	[Sp] decimal(4, 1) NULL,
-	[Rus] decimal(4, 1) NULL
+	[Ukr] [decimal](4, 1) NULL,
+	[Hist] [decimal](4, 1) NULL,
+	[Math] [decimal](4, 1) NULL,
+	[Phys] [decimal](4, 1) NULL,
+	[Chem] [decimal](4, 1) NULL,
+	[Bio] [decimal](4, 1) NULL,
+	[Geo] [decimal](4, 1) NULL,
+	[Eng] [decimal](4, 1) NULL,
+	[Fr] [decimal](4, 1) NULL,
+	[Deu] [decimal](4, 1) NULL,
+	[Sp] [decimal](4, 1) NULL,
+	[Rus] [decimal](4, 1) NULL
 ) ON [PRIMARY]
 
 GO
-/****** Object:  View [dbo].[Scores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[Scores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -335,12 +409,12 @@ CREATE VIEW [dbo].[Scores] AS
  SELECT [OutID]
 	,SexTypeName
 	,Age
-	,IsFromSchool
 	,TerType
       ,[EOName]
       ,[EORegName]      
 	  ,[Subj],
-	  [Score]
+	  [Score],
+	  CASE WHEN [Score] < 100 THEN 1 ELSE 0 END AS IsFailed
 FROM 
    (SELECT *   FROM [dbo].[PersonScores]) p
 UNPIVOT
@@ -359,11 +433,8 @@ UNPIVOT
       ,[Rus])
 )AS unpvt;
 
-
-
-
 GO
-/****** Object:  View [dbo].[SchoolSchores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolSchores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -373,15 +444,12 @@ CREATE VIEW [dbo].[SchoolSchores] AS
 SELECT  EOName, [EORegName]    
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
-		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
-		  , 1 - 1.0 * SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END)/ COUNT([Score])  AS PassRate
+		  ,SUM([IsFailed]) FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY EOName, [EORegName]
-
-
-
 GO
-/****** Object:  View [dbo].[SchoolSubjScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolSubjScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -418,10 +486,8 @@ SELECT  EOName, EORegName
 FROM            PersonScores
 GROUP BY EOName, EORegName
 
-
-
 GO
-/****** Object:  View [dbo].[SchoolScoresTotal]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolScoresTotal]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -436,12 +502,9 @@ SELECT  School.AvgScore
   INNER JOIN 
 	  SchoolSchores AS School
   ON (School.EOName = Subj.EOName AND School.[EORegName] = Subj.[EORegName])
-  
-
-
-
+ 
 GO
-/****** Object:  View [dbo].[SchoolRating]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolRating]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -465,34 +528,25 @@ SELECT TOP 1000000
   WHERE S.Examinees >=3
   ORDER BY TotalRank
 
-
-
-
 GO
-/****** Object:  View [dbo].[SchoolRatingOd]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolRatingOd]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolRatingOd] as
 SELECT *
   FROM [dbo].[SchoolRating]
   where EORegName = N'Одеська обл., м.Одеса'
- -- order by TotalAvg DESC
-
-
-
 
 GO
-/****** Object:  View [dbo].[PersonScoresWithAvg]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[PersonScoresWithAvg]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 
@@ -507,12 +561,8 @@ SELECT   S.AvgScore, S.Exams, P.*
 	  GROUP BY [OutID]) AS S
   ON S.[OutID] = P.[OutID]
 
-
-
-
-
 GO
-/****** Object:  View [dbo].[SexTypeScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SexTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -523,16 +573,13 @@ SELECT  SexTypeName
 			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
-		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
-		  , 1 - 1.0 * SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END)/ COUNT([Score])  AS PassRate
+		  ,SUM([IsFailed]) FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY SexTypeName
 
-
-
-
 GO
-/****** Object:  View [dbo].[AgeScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[AgeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -544,16 +591,13 @@ SELECT  Age
 			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
-		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
-		  , 1 - 1.0 * SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END)/ COUNT([Score])  AS PassRate
+		  ,SUM([IsFailed]) FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]
-	  WHERE IsFromSchool != 0	  
 	  GROUP BY Age
 
-
-
 GO
-/****** Object:  View [dbo].[TerTypeScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[TerTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -564,16 +608,13 @@ SELECT  TerType
 			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
-		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
-		  , 1 - 1.0 * SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END)/ COUNT([Score])  AS PassRate
+		  ,SUM([IsFailed]) FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY TerType
 
-
-
-
 GO
-/****** Object:  View [dbo].[StudentRaiting]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[StudentRaiting]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -585,13 +626,10 @@ SELECT TOP 1000000
 	 DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Exams] DESC) AS TotalRank
 	 ,V.*
   FROM [dbo].[PersonScoresWithAvg] V
-  where IsFromSchool !=0  
   ORDER BY [TotalRank] ASC
-
-
-
+  
 GO
-/****** Object:  View [dbo].[StudentRaitingTop1000]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[StudentRaitingTop1000]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -602,10 +640,8 @@ SELECT TOP 1000  V.*
   FROM [dbo].[StudentRaiting] AS V  
   order by [TotalRank] asc
  
-
-
 GO
-/****** Object:  View [dbo].[SchoolsWithBestPeople]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SchoolsWithBestPeople]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -621,33 +657,27 @@ SELECT TOP 10
   group by [EOName],[EORegName] 
   order by N DESC
 
-
-
 GO
-/****** Object:  View [dbo].[SubjectSexTypeScores]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  View [dbo].[SubjectSexTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 CREATE VIEW [dbo].[SubjectSexTypeScores] AS
 SELECT Subj, SexTypeName    
 			,COUNT(DISTINCT OutID) AS N
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
-		  ,SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END) FailedExams
-		  , 1 - 1.0 * SUM(CASE WHEN [Score] = 0 THEN 1 ELSE 0 END)/ COUNT([Score])  AS PassRate
+		  ,SUM([IsFailed]) AS FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY Subj, SexTypeName
-
-
 GO
 SET ANSI_PADDING ON
 
 GO
-/****** Object:  Index [IX_EO]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  Index [IX_EO]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE NONCLUSTERED INDEX [IX_EO] ON [dbo].[PersonScores]
 (
 	[EOName] ASC,
@@ -670,7 +700,7 @@ GO
 SET ANSI_PADDING ON
 
 GO
-/****** Object:  Index [IX_ID]    Script Date: 9/16/2016 4:43:07 PM ******/
+/****** Object:  Index [IX_ID]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE NONCLUSTERED INDEX [IX_ID] ON [dbo].[PersonScores]
 (
 	[OutID] ASC
