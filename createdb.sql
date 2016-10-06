@@ -1,17 +1,14 @@
 ﻿USE [master]
 GO
-/****** Object:  Database [zno2016]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE DATABASE [zno2016]
 GO
 ALTER DATABASE [zno2016]
 MODIFY FILE
-( NAME = N'zno2016', SIZE = 2200MB, FILEGROWTH =  10% )
+( NAME = N'zno2016', SIZE = 2048MB, FILEGROWTH =  10% )
 GO
 ALTER DATABASE [zno2016]
 MODIFY FILE
-( NAME = N'zno2016_log', SIZE = 1200MB, FILEGROWTH =  10% )
-GO
-ALTER DATABASE [zno2016] SET COMPATIBILITY_LEVEL = 110
+( NAME = N'zno2016_log', SIZE = 1024MB, FILEGROWTH =  10% )
 GO
 IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
 begin
@@ -70,15 +67,10 @@ ALTER DATABASE [zno2016] SET PAGE_VERIFY CHECKSUM
 GO
 ALTER DATABASE [zno2016] SET DB_CHAINING OFF 
 GO
-ALTER DATABASE [zno2016] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
-GO
-ALTER DATABASE [zno2016] SET TARGET_RECOVERY_TIME = 0 SECONDS 
-GO
 EXEC sys.sp_db_vardecimal_storage_format N'zno2016', N'ON'
 GO
 USE [zno2016]
 GO
-/****** Object:  UserDefinedFunction [dbo].[clean_num]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -95,8 +87,8 @@ BEGIN
 END
 
 
+
 GO
-/****** Object:  UserDefinedFunction [dbo].[clean_str]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -114,8 +106,30 @@ BEGIN
 END
 
 
+
 GO
-/****** Object:  UserDefinedFunction [dbo].[get_score]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE FUNCTION [dbo].[get_eo_hash] 
+(	
+	@EOName nvarchar(500),
+	@EORegName nvarchar(500),
+	@EOAreaName nvarchar(500)
+)
+RETURNS varbinary(20)
+AS
+BEGIN	
+	RETURN CASE 
+		WHEN @EOName IS NOT NULL 
+		THEN HASHBYTES ('SHA1', @EOName + @EORegName + @EOAreaName) 
+	END
+END
+
+GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -140,9 +154,7 @@ BEGIN
 	END
 END
 
-
 GO
-/****** Object:  Table [dbo].[OpenData2016]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -257,7 +269,6 @@ CREATE TABLE [dbo].[OpenData2016](
 ) ON [PRIMARY]
 
 GO
-/****** Object:  Table [dbo].[OpenData2016_tmp]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -372,18 +383,17 @@ CREATE TABLE [dbo].[OpenData2016_tmp](
 ) ON [PRIMARY]
 
 GO
-/****** Object:  Table [dbo].[PersonScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
 GO
 CREATE TABLE [dbo].[PersonScores](
 	[OutID] [nvarchar](200) NOT NULL,
 	[SexTypeName] [nvarchar](500) NULL,
 	[Age] [int] NULL,
-	[TerType] [nvarchar](10) NULL,
-	[EOName] [nvarchar](500) NULL,
-	[EORegName] [nvarchar](500) NULL,
+	[EOHash] [varbinary](20) NULL,
 	[Ukr] [decimal](4, 1) NULL,
 	[Hist] [decimal](4, 1) NULL,
 	[Math] [decimal](4, 1) NULL,
@@ -399,19 +409,39 @@ CREATE TABLE [dbo].[PersonScores](
 ) ON [PRIMARY]
 
 GO
-/****** Object:  View [dbo].[Scores]    Script Date: 10/3/2016 12:23:53 AM ******/
+SET ANSI_PADDING OFF
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Schools](
+	[EOHash] [varbinary](20) NOT NULL,
+	[EOName] [nvarchar](500) NULL,
+	[EOTypeName] [nvarchar](500) NULL,
+	[EORegName] [nvarchar](500) NULL,
+	[EOAreaName] [nvarchar](500) NULL,
+	[EOTerName] [nvarchar](500) NULL,
+	[TerType] [nvarchar](10) NULL,
+	[AreaName] [nvarchar](500) NULL
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+
 CREATE VIEW [dbo].[Scores] AS
  SELECT [OutID]
 	,SexTypeName
-	,Age
-	,TerType
-      ,[EOName]
-      ,[EORegName]      
+	,Age	
+      ,[EOHash]      
 	  ,[Subj],
 	  [Score],
 	  CASE WHEN [Score] < 100 THEN 1 ELSE 0 END AS IsFailed
@@ -433,31 +463,36 @@ UNPIVOT
       ,[Rus])
 )AS unpvt;
 
+
+
 GO
-/****** Object:  View [dbo].[SchoolSchores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE VIEW [dbo].[SchoolSchores] AS
-SELECT  EOName, [EORegName]    
+
+CREATE VIEW [dbo].[SchoolScores] AS
+SELECT  EOHash    
 		  ,AVG([Score]) AvgScore
 		  ,COUNT([Score]) AS Exams
 		  ,SUM([IsFailed]) FailedExams
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
-	  GROUP BY EOName, [EORegName]
+	  GROUP BY EOHash
+
+
 GO
-/****** Object:  View [dbo].[SchoolSubjScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+
+
 CREATE VIEW [dbo].[SchoolSubjScores]
 AS
-SELECT  EOName, EORegName
+SELECT  EOHash
 , COUNT(DISTINCT OutId) As Examinees
 , AVG(Ukr) AS UkrAvg
 , COUNT(Ukr) AS UkrN
@@ -484,14 +519,18 @@ SELECT  EOName, EORegName
 , AVG(Rus) AS RusAvg
 , COUNT(Rus) AS RusN
 FROM            PersonScores
-GROUP BY EOName, EORegName
+GROUP BY EOHash
+
+
+
 
 GO
-/****** Object:  View [dbo].[SchoolScoresTotal]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
 
 CREATE VIEW [dbo].[SchoolScoresTotal] AS
 SELECT  School.AvgScore
@@ -500,15 +539,19 @@ SELECT  School.AvgScore
 		  , Subj.*
   FROM [dbo].[SchoolSubjScores] AS Subj
   INNER JOIN 
-	  SchoolSchores AS School
-  ON (School.EOName = Subj.EOName AND School.[EORegName] = Subj.[EORegName])
+	  SchoolScores AS School
+  ON (School.EOHash = Subj.EOHash)
  
+
+
+
 GO
-/****** Object:  View [dbo].[SchoolRating]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE VIEW [dbo].[SchoolRating]
@@ -523,17 +566,49 @@ SELECT TOP 1000000
 	  , DENSE_RANK() OVER (ORDER BY [HistAvg] DESC, [HistN] DESC) AS HistRank
       , DENSE_RANK() OVER (ORDER BY [ChemAvg] DESC, [ChemN] DESC) AS ChemRank
       , DENSE_RANK() OVER (ORDER BY [BioAvg] DESC, [BioN] DESC) AS BioRank 
-	  ,S.*
-  FROM [dbo].[SchoolScoresTotal] AS S
-  WHERE S.Examinees >=3
+	  ,[AvgScore]
+	  ,[EOName]
+	  ,[AreaName] AS EORegName
+	  ,[Examinees]
+      ,[UkrAvg]
+      ,[UkrN]
+      ,[HistAvg]
+      ,[HistN]
+      ,[MathAvg]
+      ,[MathN]
+      ,[PhysAvg]
+      ,[PhysN]
+      ,[ChemAvg]
+      ,[ChemN]
+      ,[BioAvg]
+      ,[BioN]
+      ,[GeoAvg]
+      ,[GeoN]
+      ,[EngAvg]
+      ,[EngN]
+      ,[FrAvg]
+      ,[FrN]
+      ,[DeuAvg]
+      ,[DeuN]
+      ,[SpAvg]
+      ,[SpN]
+      ,[RusAvg]
+      ,[RusN]
+	  ,[EOTypeName]
+	  ,[TerType]
+  FROM [dbo].[SchoolScoresTotal] AS T
+  INNER JOIN [dbo].[Schools] on (T.EOHash = [Schools].EOHash)
+  WHERE Examinees >=3
   ORDER BY TotalRank
 
+
+
 GO
-/****** Object:  View [dbo].[SchoolRatingOd]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolRatingOd] as
@@ -542,11 +617,11 @@ SELECT *
   where EORegName = N'Одеська обл., м.Одеса'
 
 GO
-/****** Object:  View [dbo].[PersonScoresWithAvg]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 
@@ -561,8 +636,9 @@ SELECT   S.AvgScore, S.Exams, P.*
 	  GROUP BY [OutID]) AS S
   ON S.[OutID] = P.[OutID]
 
+
+
 GO
-/****** Object:  View [dbo].[SexTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -578,12 +654,13 @@ SELECT  SexTypeName
 	  FROM [dbo].[Scores]	  
 	  GROUP BY SexTypeName
 
+
 GO
-/****** Object:  View [dbo].[AgeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 
 CREATE VIEW [dbo].[AgeScores] AS
@@ -596,12 +673,16 @@ SELECT  Age
 	  FROM [dbo].[Scores]
 	  GROUP BY Age
 
+
+
 GO
-/****** Object:  View [dbo].[TerTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
+
+
 
 CREATE VIEW [dbo].[TerTypeScores] AS
 SELECT  TerType    
@@ -610,15 +691,16 @@ SELECT  TerType
 		  ,COUNT([Score]) AS Exams
 		  ,SUM([IsFailed]) FailedExams
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
-	  FROM [dbo].[Scores]	  
+	  FROM [dbo].[Scores]
+	  INNER JOIN [dbo].[Schools] on ([Scores].EOHash = [Schools].EOHash)	  
 	  GROUP BY TerType
 
 GO
-/****** Object:  View [dbo].[StudentRaiting]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[StudentRaiting] as 
@@ -628,37 +710,41 @@ SELECT TOP 1000000
   FROM [dbo].[PersonScoresWithAvg] V
   ORDER BY [TotalRank] ASC
   
+
+
 GO
-/****** Object:  View [dbo].[StudentRaitingTop1000]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 /****** Script for SelectTopNRows command from SSMS  ******/
-create view [dbo].[StudentRaitingTop1000] as 
+CREATE view [dbo].[StudentRaitingTop1000] as 
 SELECT TOP 1000  V.*
   FROM [dbo].[StudentRaiting] AS V  
   order by [TotalRank] asc
  
+
+
 GO
-/****** Object:  View [dbo].[SchoolsWithBestPeople]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+
 
 /****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolsWithBestPeople] as 
 SELECT TOP 10
        Count (DISTINCT [OutID]) AS N    
-      ,[EOName]
-      ,[EORegName]      
+      ,[Schools].EOName
+	  , [Schools].AreaName     
   FROM [dbo].[StudentRaitingTop1000]
-  group by [EOName],[EORegName] 
+  INNER JOIN [dbo].[Schools] on ([StudentRaitingTop1000].EOHash = [Schools].EOHash)
+  group by [Schools].EOHash, [Schools].EOName , [Schools].AreaName
   order by N DESC
 
 GO
-/****** Object:  View [dbo].[SubjectSexTypeScores]    Script Date: 10/3/2016 12:23:53 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -673,15 +759,26 @@ SELECT Subj, SexTypeName
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY Subj, SexTypeName
+
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE VIEW [dbo].[EOTypes] AS
+SELECT  EOTypeName, count(*) AS N
+  FROM [dbo].[OpenData2016]  
+  WHERE EOTypeName IS NOT NULL
+  group by EOTypeName
+
 GO
 SET ANSI_PADDING ON
 
 GO
-/****** Object:  Index [IX_EO]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE NONCLUSTERED INDEX [IX_EO] ON [dbo].[PersonScores]
 (
-	[EOName] ASC,
-	[EORegName] ASC
+	[EOHash] ASC
 )
 INCLUDE ( 	[OutID],
 	[Ukr],
@@ -700,13 +797,11 @@ GO
 SET ANSI_PADDING ON
 
 GO
-/****** Object:  Index [IX_ID]    Script Date: 10/3/2016 12:23:53 AM ******/
 CREATE NONCLUSTERED INDEX [IX_ID] ON [dbo].[PersonScores]
 (
 	[OutID] ASC
 )
-INCLUDE ( 	[EOName],
-	[EORegName],
+INCLUDE ( 	[EOHash],
 	[Ukr],
 	[Hist],
 	[Math],
@@ -719,6 +814,17 @@ INCLUDE ( 	[EOName],
 	[Deu],
 	[Sp],
 	[Rus]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+
+GO
+CREATE UNIQUE NONCLUSTERED INDEX [IX_Schools] ON [dbo].[Schools]
+(
+	[EOHash] ASC
+)
+INCLUDE ( 	[EOName],
+	[TerType],
+	[AreaName]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 GO
 USE [master]
 GO
