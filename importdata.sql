@@ -145,14 +145,7 @@ SELECT
 	OutID
 	, SexTypeName
 	, 2016 - try_convert(smallint, Birth, NULL) AS Age
-	, (CASE WHEN CHARINDEX( N'м.Київ', EOAreaName) > 0 THEN N' столица' WHEN CHARINDEX( N'м.', EOAreaName) > 0 THEN N'обл. центр' 
-			WHEN CHARINDEX( N'м.', EOTerName) > 0 THEN N'райцентр' WHEN EOTerName=N'null' THEN NULL ELSE N'село' END) AS TerType
-	, REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(EOName, N'навчально-виховний комплекс', N'НВК'),
-			 N'спеціалізована школа', N'СШ'), N'загальноосвітня школа', N'ЗОШ'), N'дошкільний навчальний заклад', N'ДНЗ'),
-			 N'комунальний заклад', N'КЗ'), N'ступенів', N'ст.') AS EOName
-	, REPLACE(EORegName, N'область', N'обл.')
-		 + CASE WHEN EOAreaName = EORegName THEN N'' ELSE ', ' + REPLACE(EOAreaName, N'район', N'р-н') END 
-		 AS EORegName
+	, dbo.get_eo_hash(EOName, EORegName,EOAreaName) AS EOHash
 	, dbo.get_score(UkrTestStatus, UkrBall100, UkrBall12) AS Ukr
 	, dbo.get_score(HistTestStatus, HistBall100, HistBall12) AS Hist
 	, dbo.get_score(MathTestStatus, MathBall100, MathBall12) AS Math
@@ -179,6 +172,57 @@ WHERE	(UkrTestStatus = N'Не склав' OR UkrTestStatus = N'Отримав р
 		SpTestStatus = N'Не склав' OR SpTestStatus = N'Отримав результат' OR
 		RusTestStatus = N'Не склав' OR RusTestStatus = N'Отримав результат')
 		AND RegTypeName = N'Випускник загальноосвітнього навчального закладу 2016 року'
+
+GO
+
+TRUNCATE TABLE [dbo].[Schools]
+GO
+
+INSERT INTO [dbo].[Schools] 
+WITH(TABLOCK)  
+SELECT 
+	  dbo.get_eo_hash(EOName, EORegName,EOAreaName) AS EOHash   
+      ,REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+				EOName 
+				, N'  ', N' ')
+				, N'загальноосвітній навчально-виховний комплекс', N'ЗНВК')
+				, N'навчально-виховний комплекс', N'НВК')
+				, N'спеціалізована школа', N'СШ')
+				, N'загальноосвітній навчальний заклад', N'ЗОНЗ')
+				, N'загальноосвітня школа', N'ЗОШ')
+				, N'дошкільний навчальний заклад', N'ДНЗ')
+				, N'комунальний навчальний заклад', N'КНЗ')
+				, N'комунальний заклад', N'КЗ')
+				, N'ступенів', N'ст.')
+				, N'районної державної адміністрації', N'РДА')
+				, N'державної районної адміністрації', N'РДА')
+				, N'сільської ради', N'СР')				
+				, N'районної ради', N'РР')
+				, N'міської ради', N'МР')				
+				, N'обласної ради', N'ОР')				
+				, N'району', N'р.')
+				, N'області', N'о.')
+			  AS EOName
+	  ,[EOTypeName]
+      ,[EORegName]
+      ,[EOAreaName]
+      ,[EOTerName]      
+	  , (CASE WHEN CHARINDEX( N'м.Київ', EOAreaName) > 0 THEN N' столица' WHEN CHARINDEX( N'м.', EOAreaName) > 0 THEN N'обл. центр' 
+			WHEN CHARINDEX( N'м.', EOTerName) > 0 THEN N'райцентр' WHEN EOTerName=N'null' THEN NULL ELSE N'село' END) AS TerType
+	  , REPLACE(EORegName, N'область', N'обл.') + ', '
+		 + CASE WHEN EOAreaName = EORegName OR  CHARINDEX( N'м.', EOTerName) > 0 THEN REPLACE(EOTerName, N'район міста', N'р-н') ELSE REPLACE(EOAreaName, N'район', N'р-н') END 
+		 AS AreaName	
+  FROM  (
+	 SELECT DISTINCT   
+			[EOName]
+		  ,[EOTypeName]
+		  ,[EORegName]
+		  ,[EOAreaName]
+		  ,[EOTerName]      
+	  
+	  FROM [OpenData2016]
+	  WHERE EOName IS NOT NULL
+  ) Q
 
 GO
 
