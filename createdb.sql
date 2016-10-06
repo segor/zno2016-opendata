@@ -4,11 +4,11 @@ CREATE DATABASE [zno2016]
 GO
 ALTER DATABASE [zno2016]
 MODIFY FILE
-( NAME = N'zno2016', SIZE = 2048MB, FILEGROWTH =  10% )
+( NAME = N'zno2016', SIZE = 2048MB, FILEGROWTH = 10% )
 GO
 ALTER DATABASE [zno2016]
 MODIFY FILE
-( NAME = N'zno2016_log', SIZE = 1024MB, FILEGROWTH =  10% )
+( NAME = N'zno2016_log', SIZE = 1024MB, FILEGROWTH = 10% )
 GO
 IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
 begin
@@ -67,8 +67,7 @@ ALTER DATABASE [zno2016] SET PAGE_VERIFY CHECKSUM
 GO
 ALTER DATABASE [zno2016] SET DB_CHAINING OFF 
 GO
-EXEC sys.sp_db_vardecimal_storage_format N'zno2016', N'ON'
-GO
+
 USE [zno2016]
 GO
 SET ANSI_NULLS ON
@@ -85,8 +84,6 @@ AS
 BEGIN
 	RETURN CASE WHEN @num <> 'null' THEN REPLACE(@num, ',', '.') END
 END
-
-
 
 GO
 SET ANSI_NULLS ON
@@ -105,14 +102,11 @@ BEGIN
 
 END
 
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 CREATE FUNCTION [dbo].[get_eo_hash] 
 (	
@@ -387,8 +381,6 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-SET ANSI_PADDING ON
-GO
 CREATE TABLE [dbo].[PersonScores](
 	[OutID] [nvarchar](200) NOT NULL,
 	[SexTypeName] [nvarchar](500) NULL,
@@ -409,13 +401,9 @@ CREATE TABLE [dbo].[PersonScores](
 ) ON [PRIMARY]
 
 GO
-SET ANSI_PADDING OFF
-GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
-GO
-SET ANSI_PADDING ON
 GO
 CREATE TABLE [dbo].[Schools](
 	[EOHash] [varbinary](20) NOT NULL,
@@ -429,13 +417,10 @@ CREATE TABLE [dbo].[Schools](
 ) ON [PRIMARY]
 
 GO
-SET ANSI_PADDING OFF
-GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 
 CREATE VIEW [dbo].[Scores] AS
  SELECT [OutID]
@@ -463,8 +448,6 @@ UNPIVOT
       ,[Rus])
 )AS unpvt;
 
-
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -480,15 +463,11 @@ SELECT  EOHash
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY EOHash
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 CREATE VIEW [dbo].[SchoolSubjScores]
 AS
@@ -521,16 +500,11 @@ SELECT  EOHash
 FROM            PersonScores
 GROUP BY EOHash
 
-
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 CREATE VIEW [dbo].[SchoolScoresTotal] AS
 SELECT  School.AvgScore
@@ -542,31 +516,58 @@ SELECT  School.AvgScore
 	  SchoolScores AS School
   ON (School.EOHash = Subj.EOHash)
  
-
-
-
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[EOTypesForRating] AS
+SELECT N'середня загальноосвітня школа' AS [EOTypeName]
+UNION 
+SELECT N'навчально-виховний комплекс' AS [EOTypeName]
+UNION 
+SELECT N'гімназія' AS [EOTypeName]
+UNION 
+SELECT N'спеціалізована школа' AS [EOTypeName]
+UNION 
+SELECT N'ліцей' AS [EOTypeName]
+UNION 
+SELECT N'середня загальноосвітня школа-інтернат' AS [EOTypeName]
+UNION 
+SELECT N'спеціалізована школа-інтернат' AS [EOTypeName]
+UNION 
+SELECT N'колегіум' AS [EOTypeName]
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-
-/****** Script for SelectTopNRows command from SSMS  ******/
 CREATE VIEW [dbo].[SchoolRating]
 AS
 SELECT TOP 1000000
-	    DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Examinees] DESC) AS TotalRank
-	  , DENSE_RANK() OVER (ORDER BY (CASE WHEN [MathN]>=3 and [PhysN]>=3 and [EngN]>=3 THEN [MathAvg] + [PhysAvg] + [EngAvg] END) DESC) AS IT_Rank     
-      , DENSE_RANK() OVER (ORDER BY [UkrAvg] DESC, [UkrN] DESC) AS UkrRank
-      , DENSE_RANK() OVER (ORDER BY [MathAvg] DESC, [MathN] DESC) AS MathRank
-      , DENSE_RANK() OVER (ORDER BY [PhysAvg] DESC, [PhysN] DESC) AS PhysRank
-      , DENSE_RANK() OVER (ORDER BY [EngAvg] DESC, [EngN] DESC) AS EngRank
-	  , DENSE_RANK() OVER (ORDER BY [HistAvg] DESC, [HistN] DESC) AS HistRank
-      , DENSE_RANK() OVER (ORDER BY [ChemAvg] DESC, [ChemN] DESC) AS ChemRank
-      , DENSE_RANK() OVER (ORDER BY [BioAvg] DESC, [BioN] DESC) AS BioRank 
-	  ,[AvgScore]
+	    CASE WHEN IsInRating=1 
+			THEN DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Examinees] DESC) END AS TotalRank
+	  , CASE WHEN IsInRating=1 AND [MathN]>=3 AND [PhysN]>=3 AND [EngN]>=3 
+			THEN DENSE_RANK() OVER (ORDER BY ( [MathAvg] + [PhysAvg] + [EngAvg] ) DESC) END AS IT_Rank     
+      , CASE WHEN IsInRating=1 AND [UkrN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [UkrAvg] DESC, [UkrN] DESC) END AS UkrRank
+      , CASE WHEN IsInRating=1 AND [MathN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [MathAvg] DESC, [MathN] DESC) END AS MathRank
+      , CASE WHEN IsInRating=1 AND [PhysN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [PhysAvg] DESC, [PhysN] DESC) END AS PhysRank
+      , CASE WHEN IsInRating=1 AND [EngN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [EngAvg] DESC, [EngN] DESC) END AS EngRank
+	  , CASE WHEN IsInRating=1 AND [HistN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [HistAvg] DESC, [HistN] DESC) END AS HistRank
+      , CASE WHEN IsInRating=1 AND [ChemN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [ChemAvg] DESC, [ChemN] DESC) END AS ChemRank
+      , CASE WHEN IsInRating=1 AND [BioN]>=3
+			THEN DENSE_RANK() OVER (ORDER BY [BioAvg] DESC, [BioN] DESC) END AS BioRank 
+	  , Q.*
+FROM (
+SELECT   
+	   [AvgScore]
 	  ,[EOName]
 	  ,[AreaName] AS EORegName
 	  ,[Examinees]
@@ -596,12 +597,21 @@ SELECT TOP 1000000
       ,[RusN]
 	  ,[EOTypeName]
 	  ,[TerType]
+	  ,CAST (
+			CASE WHEN				
+				Examinees >=3 AND
+				EXISTS (
+					SELECT 1
+					FROM [EOTypesForRating] 
+					WHERE [EOTypesForRating].[EOTypeName] = [Schools].[EOTypeName]
+				)
+			THEN 1
+			ELSE 0 END
+		AS BIT) AS IsInRating
   FROM [dbo].[SchoolScoresTotal] AS T
   INNER JOIN [dbo].[Schools] on (T.EOHash = [Schools].EOHash)
-  WHERE Examinees >=3
-  ORDER BY TotalRank
-
-
+) AS Q
+ORDER BY IsInRating DESC, TotalRank
 
 GO
 SET ANSI_NULLS ON
@@ -609,8 +619,6 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-/****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolRatingOd] as
 SELECT *
   FROM [dbo].[SchoolRating]
@@ -622,9 +630,6 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-/****** Script for SelectTopNRows command from SSMS  ******/
-
 CREATE VIEW [dbo].[PersonScoresWithAvg] AS
 SELECT   S.AvgScore, S.Exams, P.*
   FROM [dbo].[PersonScores] AS P
@@ -635,8 +640,6 @@ SELECT   S.AvgScore, S.Exams, P.*
 	  FROM [dbo].[Scores]
 	  GROUP BY [OutID]) AS S
   ON S.[OutID] = P.[OutID]
-
-
 
 GO
 SET ANSI_NULLS ON
@@ -654,14 +657,11 @@ SELECT  SexTypeName
 	  FROM [dbo].[Scores]	  
 	  GROUP BY SexTypeName
 
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 CREATE VIEW [dbo].[AgeScores] AS
 SELECT  Age   
@@ -672,17 +672,11 @@ SELECT  Age
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]
 	  GROUP BY Age
-
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
-
 
 CREATE VIEW [dbo].[TerTypeScores] AS
 SELECT  TerType    
@@ -694,23 +688,18 @@ SELECT  TerType
 	  FROM [dbo].[Scores]
 	  INNER JOIN [dbo].[Schools] on ([Scores].EOHash = [Schools].EOHash)	  
 	  GROUP BY TerType
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-/****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[StudentRaiting] as 
 SELECT TOP 1000000
 	 DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Exams] DESC) AS TotalRank
 	 ,V.*
   FROM [dbo].[PersonScoresWithAvg] V
   ORDER BY [TotalRank] ASC
-  
-
 
 GO
 SET ANSI_NULLS ON
@@ -718,22 +707,17 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-/****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[StudentRaitingTop1000] as 
 SELECT TOP 1000  V.*
   FROM [dbo].[StudentRaiting] AS V  
   order by [TotalRank] asc
  
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-/****** Script for SelectTopNRows command from SSMS  ******/
 CREATE view [dbo].[SchoolsWithBestPeople] as 
 SELECT TOP 10
        Count (DISTINCT [OutID]) AS N    
@@ -760,6 +744,7 @@ SELECT Subj, SexTypeName
 	  FROM [dbo].[Scores]	  
 	  GROUP BY Subj, SexTypeName
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -771,6 +756,7 @@ SELECT  EOTypeName, count(*) AS N
   FROM [dbo].[OpenData2016]  
   WHERE EOTypeName IS NOT NULL
   group by EOTypeName
+
 
 GO
 SET ANSI_PADDING ON
