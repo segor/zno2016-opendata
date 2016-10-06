@@ -9,7 +9,7 @@ GO
 
 BULK INSERT OpenData2016_tmp
 	-- !!! SET PATH TO CSV FILE HERE: 	
-    FROM N'C:\Users\sgorodetsky\Downloads\OpenDataZNO2016\OpenData2016.csv'	
+    FROM N'C:\Users\segor\Downloads\OpenDataZNO2016\OpenData2016.csv'	
     WITH
     (
     FIRSTROW = 2,
@@ -144,7 +144,7 @@ INSERT INTO [dbo].[PersonScores]
 SELECT  
 	OutID
 	, SexTypeName
-	, 2016 - try_convert(smallint, Birth, NULL) AS Age
+	, 2016 - Birth AS Age
 	, dbo.get_eo_hash(EOName, EORegName,EOAreaName) AS EOHash
 	, dbo.get_score(UkrTestStatus, UkrBall100, UkrBall12) AS Ukr
 	, dbo.get_score(HistTestStatus, HistBall100, HistBall12) AS Hist
