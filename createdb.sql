@@ -67,7 +67,6 @@ ALTER DATABASE [zno2016] SET PAGE_VERIFY CHECKSUM
 GO
 ALTER DATABASE [zno2016] SET DB_CHAINING OFF 
 GO
-
 USE [zno2016]
 GO
 SET ANSI_NULLS ON
@@ -85,6 +84,7 @@ BEGIN
 	RETURN CASE WHEN @num <> 'null' THEN REPLACE(@num, ',', '.') END
 END
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -101,6 +101,7 @@ BEGIN
 	RETURN CASE WHEN @str <> 'null' THEN REPLACE(@str, '"', '') END
 
 END
+
 
 GO
 SET ANSI_NULLS ON
@@ -122,6 +123,7 @@ BEGIN
 		THEN HASHBYTES ('SHA1', @EOName + @EORegName + @EOAreaName) 
 	END
 END
+
 
 GO
 SET ANSI_NULLS ON
@@ -147,6 +149,7 @@ BEGIN
 		END
 	END
 END
+
 
 GO
 SET ANSI_NULLS ON
@@ -448,74 +451,134 @@ UNPIVOT
       ,[Rus])
 )AS unpvt;
 
+
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 CREATE VIEW [dbo].[SchoolScores] AS
-SELECT  EOHash    
-		  ,AVG([Score]) AvgScore
-		  ,COUNT([Score]) AS Exams
-		  ,SUM([IsFailed]) FailedExams
-		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
-	  FROM [dbo].[Scores]	  
-	  GROUP BY EOHash
+SELECT A.*, M.MedScore FROM
+	(SELECT  EOHash    
+			  ,AVG([Score]) AvgScore
+			  ,COUNT([Score]) AS Exams
+			  ,SUM([IsFailed]) FailedExams
+			  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
+		  FROM [dbo].[Scores]	  
+		  GROUP BY EOHash) AS A
+INNER JOIN 
+	(SELECT DISTINCT EOHash
+				, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY [Score]) OVER (PARTITION BY EOHash) AS MedScore
+	FROM [dbo].[Scores]	) AS M 
+ON A.EOHash = M.EOHash
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 CREATE VIEW [dbo].[SchoolSubjScores]
 AS
-SELECT  EOHash
-, COUNT(DISTINCT OutId) As Examinees
-, AVG(Ukr) AS UkrAvg
-, COUNT(Ukr) AS UkrN
-, AVG(Hist) AS HistAvg
-, COUNT(Hist) AS HistN
-, AVG(Math) AS MathAvg
-, COUNT(Math) AS MathN
-, AVG(Phys) AS PhysAvg
-, COUNT(Phys) AS PhysN
-, AVG(Chem) AS ChemAvg
-, COUNT(Chem) AS ChemN
-, AVG(Bio) AS BioAvg
-, COUNT(Bio) AS BioN
-, AVG(Geo) AS GeoAvg
-, COUNT(Geo) AS GeoN
-, AVG(Eng) AS EngAvg
-, COUNT(Eng) AS EngN
-, AVG(Fr) AS FrAvg
-, COUNT(Fr) AS FrN
-, AVG(Deu) AS DeuAvg
-, COUNT(Deu) AS DeuN
-, AVG(Sp) AS SpAvg
-, COUNT(Sp) AS SpN
-, AVG(Rus) AS RusAvg
-, COUNT(Rus) AS RusN
-FROM            PersonScores
-GROUP BY EOHash
+SELECT 
+	A.[EOHash]
+	,[Examinees]
+	,[UkrAvg]
+	,[UkrMed]
+	,[UkrN]
+	,[HistAvg]
+	,[HistMed]
+	,[HistN]
+	,[MathAvg]
+	,[MathMed]
+	,[MathN]
+	,[PhysAvg]
+	,[PhysMed]
+	,[PhysN]
+	,[ChemAvg]
+	,[ChemMed]
+	,[ChemN]
+	,[BioAvg]
+	,[BioMed]
+	,[BioN]
+	,[GeoAvg]
+	,[GeoMed]
+	,[GeoN]
+	,[EngAvg]
+	,[EngMed]
+	,[EngN]
+	,[FrAvg]
+	,[FrMed]
+	,[FrN]
+	,[DeuAvg]
+	,[DeuMed]
+	,[DeuN]
+	,[SpAvg]
+	,[SpMed]
+	,[SpN]
+	,[RusAvg]
+	,[RusMed]
+	,[RusN]
+FROM
+	(SELECT EOHash
+	, COUNT(DISTINCT OutId) As Examinees
+	, AVG(Ukr) AS UkrAvg
+	, COUNT(Ukr) AS UkrN
+	, AVG(Hist) AS HistAvg
+	, COUNT(Hist) AS HistN
+	, AVG(Math) AS MathAvg
+	, COUNT(Math) AS MathN
+	, AVG(Phys) AS PhysAvg
+	, COUNT(Phys) AS PhysN
+	, AVG(Chem) AS ChemAvg
+	, COUNT(Chem) AS ChemN
+	, AVG(Bio) AS BioAvg
+	, COUNT(Bio) AS BioN
+	, AVG(Geo) AS GeoAvg
+	, COUNT(Geo) AS GeoN
+	, AVG(Eng) AS EngAvg
+	, COUNT(Eng) AS EngN
+	, AVG(Fr) AS FrAvg
+	, COUNT(Fr) AS FrN
+	, AVG(Deu) AS DeuAvg
+	, COUNT(Deu) AS DeuN
+	, AVG(Sp) AS SpAvg
+	, COUNT(Sp) AS SpN
+	, AVG(Rus) AS RusAvg
+	, COUNT(Rus) AS RusN
+	FROM            PersonScores
+	GROUP BY EOHash) AS A
+INNER JOIN 
+	(SELECT DISTINCT EOHash
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Ukr) OVER (PARTITION BY EOHash) AS UkrMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Hist) OVER (PARTITION BY EOHash) AS HistMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Math) OVER (PARTITION BY EOHash) AS MathMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Phys) OVER (PARTITION BY EOHash) AS PhysMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Chem) OVER (PARTITION BY EOHash) AS ChemMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Bio) OVER (PARTITION BY EOHash) AS BioMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Geo) OVER (PARTITION BY EOHash) AS GeoMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Eng) OVER (PARTITION BY EOHash) AS EngMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Fr) OVER (PARTITION BY EOHash) AS FrMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Deu) OVER (PARTITION BY EOHash) AS DeuMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Sp) OVER (PARTITION BY EOHash) AS SpMed
+		, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Rus) OVER (PARTITION BY EOHash) AS RusMed
+	FROM            PersonScores ) AS M
+ON A.EOHash = M.EOHash
+
 
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 CREATE VIEW [dbo].[SchoolScoresTotal] AS
 SELECT  School.AvgScore
 		  ,School.FailedExams
 		  , School.PassRate
+		  , School.MedScore
 		  , Subj.*
   FROM [dbo].[SchoolSubjScores] AS Subj
   INNER JOIN 
 	  SchoolScores AS School
   ON (School.EOHash = Subj.EOHash)
- 
 GO
 SET ANSI_NULLS ON
 GO
@@ -537,17 +600,19 @@ UNION
 SELECT N'спеціалізована школа-інтернат' AS [EOTypeName]
 UNION 
 SELECT N'колегіум' AS [EOTypeName]
+
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 CREATE VIEW [dbo].[SchoolRating]
 AS
 SELECT TOP 1000000
 	    CASE WHEN IsInRating=1 
 			THEN DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Examinees] DESC) END AS TotalRank
+	  , CASE WHEN IsInRating=1 
+			THEN DENSE_RANK() OVER (ORDER BY [MedScore] DESC, [Examinees] DESC) END AS MedTotalRank
 	  , CASE WHEN IsInRating=1 AND [MathN]>=3 AND [PhysN]>=3 AND [EngN]>=3 
 			THEN DENSE_RANK() OVER (ORDER BY ( [MathAvg] + [PhysAvg] + [EngAvg] ) DESC) END AS IT_Rank     
       , CASE WHEN IsInRating=1 AND [UkrN]>=3
@@ -564,36 +629,50 @@ SELECT TOP 1000000
 			THEN DENSE_RANK() OVER (ORDER BY [ChemAvg] DESC, [ChemN] DESC) END AS ChemRank
       , CASE WHEN IsInRating=1 AND [BioN]>=3
 			THEN DENSE_RANK() OVER (ORDER BY [BioAvg] DESC, [BioN] DESC) END AS BioRank 
-	  , Q.*
+	  , Q.*	  
 FROM (
 SELECT   
 	   [AvgScore]
+	  ,[MedScore]
 	  ,[EOName]
 	  ,[AreaName] AS EORegName
 	  ,[Examinees]
+	  ,[PassRate]
       ,[UkrAvg]
+      ,[UkrMed]
       ,[UkrN]
       ,[HistAvg]
+      ,[HistMed]
       ,[HistN]
       ,[MathAvg]
+      ,[MathMed]
       ,[MathN]
       ,[PhysAvg]
+      ,[PhysMed]
       ,[PhysN]
       ,[ChemAvg]
+      ,[ChemMed]
       ,[ChemN]
       ,[BioAvg]
+      ,[BioMed]
       ,[BioN]
       ,[GeoAvg]
+      ,[GeoMed]
       ,[GeoN]
       ,[EngAvg]
+      ,[EngMed]
       ,[EngN]
       ,[FrAvg]
+      ,[FrMed]
       ,[FrN]
       ,[DeuAvg]
+      ,[DeuMed]
       ,[DeuN]
       ,[SpAvg]
+      ,[SpMed]
       ,[SpN]
       ,[RusAvg]
+      ,[RusMed]
       ,[RusN]
 	  ,[EOTypeName]
 	  ,[TerType]
@@ -611,8 +690,7 @@ SELECT
   FROM [dbo].[SchoolScoresTotal] AS T
   INNER JOIN [dbo].[Schools] on (T.EOHash = [Schools].EOHash)
 ) AS Q
-ORDER BY IsInRating DESC, TotalRank
-
+ORDER BY IsInRating DESC, TotalRank, [AvgScore] DESC, [Examinees] DESC
 GO
 SET ANSI_NULLS ON
 GO
@@ -623,6 +701,7 @@ CREATE view [dbo].[SchoolRatingOd] as
 SELECT *
   FROM [dbo].[SchoolRating]
   where EORegName = N'Одеська обл., м.Одеса'
+
 
 GO
 SET ANSI_NULLS ON
@@ -641,6 +720,7 @@ SELECT   S.AvgScore, S.Exams, P.*
 	  GROUP BY [OutID]) AS S
   ON S.[OutID] = P.[OutID]
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -657,6 +737,7 @@ SELECT  SexTypeName
 	  FROM [dbo].[Scores]	  
 	  GROUP BY SexTypeName
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -672,6 +753,7 @@ SELECT  Age
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]
 	  GROUP BY Age
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -688,6 +770,7 @@ SELECT  TerType
 	  FROM [dbo].[Scores]
 	  INNER JOIN [dbo].[Schools] on ([Scores].EOHash = [Schools].EOHash)	  
 	  GROUP BY TerType
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -701,6 +784,7 @@ SELECT TOP 1000000
   FROM [dbo].[PersonScoresWithAvg] V
   ORDER BY [TotalRank] ASC
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -712,6 +796,7 @@ SELECT TOP 1000  V.*
   FROM [dbo].[StudentRaiting] AS V  
   order by [TotalRank] asc
  
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -727,6 +812,7 @@ SELECT TOP 10
   INNER JOIN [dbo].[Schools] on ([StudentRaitingTop1000].EOHash = [Schools].EOHash)
   group by [Schools].EOHash, [Schools].EOName , [Schools].AreaName
   order by N DESC
+
 
 GO
 SET ANSI_NULLS ON
@@ -745,6 +831,26 @@ SELECT Subj, SexTypeName
 	  GROUP BY Subj, SexTypeName
 
 
+
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE VIEW [dbo].[EOTypeScores] AS
+SELECT  EOTypeName    
+			,COUNT(DISTINCT OutID) AS N
+		  ,AVG([Score]) AvgScore
+		  ,COUNT([Score]) AS Exams
+		  ,SUM([IsFailed]) FailedExams
+		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
+	  FROM [dbo].[Scores]
+	  INNER JOIN [dbo].[Schools] on ([Scores].EOHash = [Schools].EOHash)	  
+	  GROUP BY EOTypeName
+
+
+
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -756,6 +862,7 @@ SELECT  EOTypeName, count(*) AS N
   FROM [dbo].[OpenData2016]  
   WHERE EOTypeName IS NOT NULL
   group by EOTypeName
+
 
 
 GO
