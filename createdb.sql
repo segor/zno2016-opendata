@@ -84,7 +84,6 @@ BEGIN
 	RETURN CASE WHEN @num <> 'null' THEN REPLACE(@num, ',', '.') END
 END
 
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -101,7 +100,6 @@ BEGIN
 	RETURN CASE WHEN @str <> 'null' THEN REPLACE(@str, '"', '') END
 
 END
-
 
 GO
 SET ANSI_NULLS ON
@@ -123,7 +121,6 @@ BEGIN
 		THEN HASHBYTES ('SHA1', @EOName + @EORegName + @EOAreaName) 
 	END
 END
-
 
 GO
 SET ANSI_NULLS ON
@@ -149,7 +146,6 @@ BEGIN
 		END
 	END
 END
-
 
 GO
 SET ANSI_NULLS ON
@@ -384,6 +380,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
+SET ANSI_PADDING ON
+GO
 CREATE TABLE [dbo].[PersonScores](
 	[OutID] [nvarchar](200) NOT NULL,
 	[SexTypeName] [nvarchar](500) NULL,
@@ -404,9 +402,13 @@ CREATE TABLE [dbo].[PersonScores](
 ) ON [PRIMARY]
 
 GO
+SET ANSI_PADDING OFF
+GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
 GO
 CREATE TABLE [dbo].[Schools](
 	[EOHash] [varbinary](20) NOT NULL,
@@ -416,9 +418,11 @@ CREATE TABLE [dbo].[Schools](
 	[EOAreaName] [nvarchar](500) NULL,
 	[EOTerName] [nvarchar](500) NULL,
 	[TerType] [nvarchar](10) NULL,
-	[AreaName] [nvarchar](500) NULL
+	[EOAreaFullName] [nvarchar](500) NULL
 ) ON [PRIMARY]
 
+GO
+SET ANSI_PADDING OFF
 GO
 SET ANSI_NULLS ON
 GO
@@ -452,6 +456,7 @@ UNPIVOT
 )AS unpvt;
 
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -471,6 +476,7 @@ INNER JOIN
 				, PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY [Score]) OVER (PARTITION BY EOHash) AS MedScore
 	FROM [dbo].[Scores]	) AS M 
 ON A.EOHash = M.EOHash
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -563,7 +569,6 @@ INNER JOIN
 	FROM            PersonScores ) AS M
 ON A.EOHash = M.EOHash
 
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -579,6 +584,7 @@ SELECT  School.AvgScore
   INNER JOIN 
 	  SchoolScores AS School
   ON (School.EOHash = Subj.EOHash)
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -601,6 +607,7 @@ SELECT N'спеціалізована школа-інтернат' AS [EOTypeNam
 UNION 
 SELECT N'колегіум' AS [EOTypeName]
 
+
 GO
 SET ANSI_NULLS ON
 GO
@@ -610,33 +617,31 @@ CREATE VIEW [dbo].[SchoolRating]
 AS
 SELECT TOP 1000000
 	    CASE WHEN IsInRating=1 
-			THEN DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Examinees] DESC) END AS TotalRank
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, [AvgScore] DESC, [Examinees] DESC) END AS TotalRank
 	  , CASE WHEN IsInRating=1 
-			THEN DENSE_RANK() OVER (ORDER BY [MedScore] DESC, [Examinees] DESC) END AS MedTotalRank
-	  , CASE WHEN IsInRating=1 AND [MathN]>=3 AND [PhysN]>=3 AND [EngN]>=3 
-			THEN DENSE_RANK() OVER (ORDER BY ( [MathAvg] + [PhysAvg] + [EngAvg] ) DESC) END AS IT_Rank     
-      , CASE WHEN IsInRating=1 AND [UkrN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [UkrAvg] DESC, [UkrN] DESC) END AS UkrRank
-      , CASE WHEN IsInRating=1 AND [MathN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [MathAvg] DESC, [MathN] DESC) END AS MathRank
-      , CASE WHEN IsInRating=1 AND [PhysN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [PhysAvg] DESC, [PhysN] DESC) END AS PhysRank
-      , CASE WHEN IsInRating=1 AND [EngN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [EngAvg] DESC, [EngN] DESC) END AS EngRank
-	  , CASE WHEN IsInRating=1 AND [HistN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [HistAvg] DESC, [HistN] DESC) END AS HistRank
-      , CASE WHEN IsInRating=1 AND [ChemN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [ChemAvg] DESC, [ChemN] DESC) END AS ChemRank
-      , CASE WHEN IsInRating=1 AND [BioN]>=3
-			THEN DENSE_RANK() OVER (ORDER BY [BioAvg] DESC, [BioN] DESC) END AS BioRank 
-	  , Q.*	  
-FROM (
-SELECT   
-	   [AvgScore]
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, [MedScore] DESC, [Examinees] DESC) END AS MedTotalRank
+	  , CASE WHEN IsInRating=1 AND IsInIT_Rating=1 
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInIT_Rating DESC, ( [MathAvg] + [PhysAvg] + [EngAvg] ) DESC) END AS IT_Rank     
+      , CASE WHEN IsInRating=1 AND IsInUkrRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInUkrRating DESC, [UkrAvg] DESC, [UkrN] DESC) END AS UkrRank
+      , CASE WHEN IsInRating=1 AND IsInMathRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInMathRating DESC, [MathAvg] DESC, [MathN] DESC) END AS MathRank
+      , CASE WHEN IsInRating=1 AND IsInPhysRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInPhysRating DESC, [PhysAvg] DESC, [PhysN] DESC) END AS PhysRank
+      , CASE WHEN IsInRating=1 AND IsInEngRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInEngRating DESC, [EngAvg] DESC, [EngN] DESC) END AS EngRank
+	  , CASE WHEN IsInRating=1 AND IsInHistRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInHistRating DESC, [HistAvg] DESC, [HistN] DESC) END AS HistRank
+      , CASE WHEN IsInRating=1 AND IsInChemRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInChemRating DESC, [ChemAvg] DESC, [ChemN] DESC) END AS ChemRank
+      , CASE WHEN IsInRating=1 AND IsInBioRating=1
+			THEN DENSE_RANK() OVER (ORDER BY IsInRating DESC, IsInBioRating DESC, [BioAvg] DESC, [BioN] DESC) END AS BioRank 
+	  ,[AvgScore]
 	  ,[MedScore]
 	  ,[EOName]
-	  ,[AreaName] AS EORegName
+	  ,[EOAreaFullName]
 	  ,[Examinees]
+	  ,[FailedExams]
 	  ,[PassRate]
       ,[UkrAvg]
       ,[UkrMed]
@@ -676,7 +681,14 @@ SELECT
       ,[RusN]
 	  ,[EOTypeName]
 	  ,[TerType]
-	  ,CAST (
+FROM (
+SELECT   
+	   T.*
+	  ,[EOName]
+	  ,[EOAreaFullName]
+	  ,[EOTypeName]
+	  ,[TerType]
+	  ,(
 			CASE WHEN				
 				Examinees >=3 AND
 				EXISTS (
@@ -686,22 +698,19 @@ SELECT
 				)
 			THEN 1
 			ELSE 0 END
-		AS BIT) AS IsInRating
+		) AS IsInRating
+	   ,CASE WHEN [MathN]>=3 AND [PhysN]>=3 AND [EngN]>=3 THEN 1 ELSE 0 END AS IsInIT_Rating
+	   ,CASE WHEN [UkrN]>=3 THEN 1 ELSE 0 END AS IsInUkrRating
+	   ,CASE WHEN [HistN]>=3 THEN 1 ELSE 0 END AS IsInHistRating
+	   ,CASE WHEN [MathN]>=3 THEN 1 ELSE 0 END AS IsInMathRating
+	   ,CASE WHEN [PhysN]>=3 THEN 1 ELSE 0 END AS IsInPhysRating
+	   ,CASE WHEN [ChemN]>=3 THEN 1 ELSE 0 END AS IsInChemRating
+	   ,CASE WHEN [BioN]>=3 THEN 1 ELSE 0 END AS IsInBioRating
+	   ,CASE WHEN [EngN]>=3 THEN 1 ELSE 0 END AS IsInEngRating
   FROM [dbo].[SchoolScoresTotal] AS T
   INNER JOIN [dbo].[Schools] on (T.EOHash = [Schools].EOHash)
 ) AS Q
 ORDER BY IsInRating DESC, TotalRank, [AvgScore] DESC, [Examinees] DESC
-GO
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE view [dbo].[SchoolRatingOd] as
-SELECT *
-  FROM [dbo].[SchoolRating]
-  where EORegName = N'Одеська обл., м.Одеса'
-
 
 GO
 SET ANSI_NULLS ON
@@ -720,7 +729,6 @@ SELECT   S.AvgScore, S.Exams, P.*
 	  GROUP BY [OutID]) AS S
   ON S.[OutID] = P.[OutID]
 
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -736,8 +744,6 @@ SELECT  SexTypeName
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY SexTypeName
-
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -776,27 +782,27 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 CREATE view [dbo].[StudentRaiting] as 
 SELECT TOP 1000000
 	 DENSE_RANK() OVER (ORDER BY [AvgScore] DESC, [Exams] DESC) AS TotalRank
 	 ,V.*
+	 ,[Schools].EOName
+	 ,[Schools].EOAreaFullName
+	 ,[Schools].EOTypeName
+	 ,[Schools].TerType
   FROM [dbo].[PersonScoresWithAvg] V
+  INNER JOIN [dbo].[Schools] on (V.EOHash = [Schools].EOHash)
+  WHERE  [Exams]>=3
   ORDER BY [TotalRank] ASC
-
-
 GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-
 CREATE view [dbo].[StudentRaitingTop1000] as 
 SELECT TOP 1000  V.*
   FROM [dbo].[StudentRaiting] AS V  
   order by [TotalRank] asc
- 
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -807,12 +813,11 @@ CREATE view [dbo].[SchoolsWithBestPeople] as
 SELECT TOP 10
        Count (DISTINCT [OutID]) AS N    
       ,[Schools].EOName
-	  , [Schools].AreaName     
+	  , [Schools].EOAreaFullName     
   FROM [dbo].[StudentRaitingTop1000]
   INNER JOIN [dbo].[Schools] on ([StudentRaitingTop1000].EOHash = [Schools].EOHash)
-  group by [Schools].EOHash, [Schools].EOName , [Schools].AreaName
+  group by [Schools].EOHash, [Schools].EOName , [Schools].EOAreaFullName
   order by N DESC
-
 
 GO
 SET ANSI_NULLS ON
@@ -829,9 +834,6 @@ SELECT Subj, SexTypeName
 		  , 1 - 1.0 * SUM([IsFailed])/ COUNT([Score])  AS PassRate
 	  FROM [dbo].[Scores]	  
 	  GROUP BY Subj, SexTypeName
-
-
-
 GO
 SET ANSI_NULLS ON
 GO
@@ -848,9 +850,16 @@ SELECT  EOTypeName
 	  INNER JOIN [dbo].[Schools] on ([Scores].EOHash = [Schools].EOHash)	  
 	  GROUP BY EOTypeName
 
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-
-
+CREATE view [dbo].[SchoolRatingOd] as
+SELECT *
+  FROM [dbo].[SchoolRating]
+  where EOAreaFullName = N'Одеська обл., м.Одеса'
 GO
 SET ANSI_NULLS ON
 GO
@@ -862,9 +871,6 @@ SELECT  EOTypeName, count(*) AS N
   FROM [dbo].[OpenData2016]  
   WHERE EOTypeName IS NOT NULL
   group by EOTypeName
-
-
-
 GO
 SET ANSI_PADDING ON
 
@@ -917,7 +923,7 @@ CREATE UNIQUE NONCLUSTERED INDEX [IX_Schools] ON [dbo].[Schools]
 )
 INCLUDE ( 	[EOName],
 	[TerType],
-	[AreaName]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+	[EOAreaFullName]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 GO
 USE [master]
 GO

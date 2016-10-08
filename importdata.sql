@@ -203,15 +203,21 @@ SELECT
 				, N'району', N'р.')
 				, N'області', N'об.')
 			  AS EOName
-	  ,[EOTypeName]
+	  ,CASE 
+			WHEN (EOTypeName = N'спеціальна загальноосвітня школа' AND EOName LIKE N'%спеціалізован%') THEN N'спеціалізована школа'
+			WHEN (EOTypeName = N'спеціальна загальноосвітня школа-інтернат' AND EOName LIKE N'%спеціалізован%') THEN N'спеціалізована школа-інтернат'
+			WHEN (EOTypeName = N'спеціалізована школа' AND EOName LIKE N'%спеціальн%') THEN N'спеціальна загальноосвітня школа'
+			WHEN (EOTypeName = N'спеціалізована школа-інтернат' AND EOName LIKE N'%спеціальн%') THEN N'спеціальна загальноосвітня школа-інтернат'
+			ELSE EOTypeName
+	   END AS [EOTypeName]
       ,[EORegName]
       ,[EOAreaName]
       ,[EOTerName]      
 	  , (CASE WHEN CHARINDEX( N'м.Київ', EOAreaName) > 0 THEN N' столица' WHEN CHARINDEX( N'м.', EOAreaName) > 0 THEN N'обл. центр' 
 			WHEN CHARINDEX( N'м.', EOTerName) > 0 THEN N'райцентр' WHEN EOTerName=N'null' THEN NULL ELSE N'село' END) AS TerType
-	  , REPLACE(EORegName, N'область', N'обл.') + ', '
-		 + CASE WHEN EOAreaName = EORegName OR  CHARINDEX( N'м.', EOTerName) > 0 THEN REPLACE(EOTerName, N'район міста', N'р-н') ELSE REPLACE(EOAreaName, N'район', N'р-н') END 
-		 AS AreaName	
+	  , REPLACE(EORegName, N'область', N'об.') + ', '
+		 + CASE WHEN EOAreaName = EORegName OR  CHARINDEX( N'м.', EOTerName) > 0 THEN REPLACE(EOTerName, N'район міста', N'р.') ELSE REPLACE(EOAreaName, N'район', N'р.') END 
+		 AS EOAreaFullName	
   FROM  (
 	 SELECT DISTINCT   
 			[EOName]
